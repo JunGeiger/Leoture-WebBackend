@@ -1,0 +1,6 @@
+Tag写法                          作用
+json:"name"                     指定序列化后的 JSON 字段名
+json:"-"                        完全忽略该字段，不参与编解码
+json:",omitempty"               字段为零值时，序列化阶段省略该字段
+json:",string"                  将数字/布尔值编码为 JSON 字符串
+json:",omitzero"                Go 1.24+ 新增，字段为"零值"时省略（按 IsZero() 或 reflect.Value.IsZero() 判定）

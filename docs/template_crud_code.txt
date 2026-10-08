@@ -1,0 +1,724 @@
+标准CRUD实现代码示例：
+
+---------------------------------------------------------------------------------
+request通用代码：internal/types/request/common.go
+package request
+
+import "time"
+
+// Gin请求上下文中携带的参数key值
+const (
+	RequestIDKey          = "request_id"   // 请求ID在gin上下文中的key值
+	RequestTimeKey        = "request_time" // 中间件注入的请求时间key值
+	RequestIDHeaderKey    = "Request-ID"   // 前端携带的请求ID在请求头中的key值
+)
+
+// 默认分页参数
+const (
+	defaultPageSize = 10  // 默认分页条数
+	maxPageSize     = 100 // 最大分页条数
+)
+
+// Header HTTP请求需要绑定的请求头参数
+type Header struct {
+	Authorization string `header:"Authorization" binding:"required"`
+}
+
+// DataID HTTP请求业务通用ID数据
+type DataID struct {
+	ID string `json:"id" form:"id" uri:"id" binding:"required"`
+}
+
+// DateRange HTTP请求业务数据通用日期范围
+type DateRange struct {
+	DateStart *time.Time `json:"dateStart" form:"dateStart" binding:"-" time_format:"2006-01-02"`
+	DateEnd   *time.Time `json:"dataEnd" form:"dataEnd" binding:"-" time_format:"2006-01-02"`
+}
+
+// PageParams HTTP请求业务数据通用分页参数
+type PageParams struct {
+	Page       int   `json:"page" form:"page" binding:"-"`         // 当前页码（从 1 开始）
+	PageSize   int   `json:"pageSize" form:"pageSize" binding:"-"` // 每页条数
+	Total      int64 `json:"total"`                                // 总记录数
+	TotalPages int   `json:"totalPages"`                           // 总页数（自动计算）
+}
+
+// InitPagination 计算分页数据
+func (p *PageParams) InitPagination(total int64) {
+	p.Total = total
+	if p.Page <= 0 {
+		p.Page = 1
+	}
+	if p.PageSize <= 0 {
+		p.PageSize = defaultPageSize
+	} else if p.PageSize > maxPageSize {
+		p.PageSize = maxPageSize
+	}
+	if p.Total <= 0 {
+		p.Total = 0
+		p.TotalPages = 0
+		return
+	}
+	p.TotalPages = int((p.Total + int64(p.PageSize) - 1) / int64(p.PageSize))
+}
+
+---------------------------------------------------------------------------------
+response通用代码：internal/types/response/common.go
+package response
+
+import (
+	"LeotureWeb/internal/errors"
+	"LeotureWeb/internal/types/request"
+	"github.com/gin-gonic/gin"
+)
+
+// Response HTTP接口统一响应信封
+type Response[T any] struct {
+	Code      errors.ResponseCode `json:"code"`                // 业务状态码
+	Message   string              `json:"message"`             // 提示信息
+	Data      *T                  `json:"data,omitempty"`      // 业务数据
+	RequestID string              `json:"requestID,omitempty"` // 请求唯一标识
+}
+
+// Success 返回标准的成功响应（HTTP 200）
+func Success[T any](c *gin.Context, data T) *Response[T] {
+	return &Response[T]{
+		Code:      errors.CodeSuccess,
+		Message:   "success",
+		Data:      &data,
+		RequestID: c.GetString(request.RequestIDKey),
+	}
+}
+
+// Failure 组装统一错误响应
+func Failure(c *gin.Context, code errors.ResponseCode, msg string) Response[any] {
+	return Response[any]{
+		Code:      code,
+		Message:   msg,
+		Data:      nil,
+		RequestID: c.GetString(request.RequestIDKey),
+	}
+}
+
+// Paginated 分页数据结构
+// 如果分页数据未传，则需要手动初始化为第一页参数
+type Paginated[T any] struct {
+	List       []*T  `json:"list,omitempty"` // 当前页数据列表（空时返回 [] 而非 null）
+	Total      int64 `json:"total"`          // 总记录数
+	Page       int   `json:"page"`           // 当前页码（从 1 开始）
+	PageSize   int   `json:"pageSize"`       // 每页条数
+	TotalPages int   `json:"totalPages"`     // 总页数（自动计算）
+}
+
+// PagingData 返回分页成功响应（HTTP 200）。
+// 自动计算总页数，并确保 List 为空时返回 [] 而非 null（前端无需额外判空）。
+func PagingData[T any](list []*T, total int64, page int, pageSize int, totalPages int) *Paginated[T] {
+	// 确保空列表返回 [] 而非 null，避免前端额外判空
+	if list == nil {
+		list = []*T{}
+	}
+	return &Paginated[T]{
+		List:       list,
+		Total:      total,
+		Page:       page,
+		PageSize:   pageSize,
+		TotalPages: totalPages,
+	}
+}
+
+---------------------------------------------------------------------------------
+路由注册代码：internal/router/$modelName.go
+package router
+
+import (
+	"LeotureWeb/internal/handler"
+	"github.com/gin-gonic/gin"
+)
+
+func registerUserRoutes(r *gin.RouterGroup, h *handler.User) {
+	g := r.Group("/user")
+	{
+		g.POST("/create", h.Create)
+		g.POST("/update", h.Update)
+		g.DELETE("/delete/:id", h.Delete)
+		g.GET("/:id", h.GetByID)
+		g.GET("/username/:username", h.GetByUsername)
+		g.GET("/list", h.List)
+		g.GET("/page", h.ListByPage)
+	}
+}
+
+---------------------------------------------------------------------------------
+请求处理层代码：internal/handler/$modelName.go
+package handler
+
+import (
+	"LeotureWeb/internal/errors"
+	"LeotureWeb/internal/service/user"
+	"LeotureWeb/internal/types/request"
+	"LeotureWeb/internal/types/response"
+	"github.com/gin-gonic/gin"
+	"net/http"
+)
+
+type User struct {
+	service user.Service
+}
+
+func newUserHandler(svc user.Service) *User {
+	return &User{service: svc}
+}
+
+// Create godoc
+// @Summary create user
+// @Description create user
+// @Tags user
+// @Accept json
+// @Produce json
+// @Param user body request.UserCreate true "user data"
+// @Success 200 {object} response.SwaggerResponse
+// @Failure 400,500 {object} response.SwaggerResponse
+// @Router /api/v1/user/create [post]
+func (h *User) Create(c *gin.Context) {
+	var data request.UserCreate
+	if err := c.ShouldBindJSON(&data); err != nil {
+		_ = c.Error(errors.ErrInvalidParam)
+		return
+	}
+
+	if err := h.service.Create(c.Request.Context(), &data); err != nil {
+		_ = c.Error(err)
+		return
+	}
+	c.JSON(http.StatusOK, response.Success[any](c, nil))
+	return
+}
+
+// Update godoc
+// @Summary update user
+// @Description update user by userID
+// @Tags user
+// @Accept json
+// @Produce json
+// @Param user body request.UserUpdate true "user data"
+// @Success 200 {object} response.SwaggerResponse
+// @Failure 400,500 {object} response.SwaggerResponse
+// @Router /api/v1/user/update [post]
+func (h *User) Update(c *gin.Context) {
+	var data request.UserUpdate
+	if err := c.ShouldBindJSON(&data); err != nil {
+		_ = c.Error(errors.ErrInvalidParam)
+		return
+	}
+
+	if err := h.service.Update(c.Request.Context(), &data); err != nil {
+		_ = c.Error(err)
+		return
+	}
+	c.JSON(http.StatusOK, response.Success[any](c, nil))
+	return
+}
+
+// Delete godoc
+// @Summary delete user
+// @Description delete user by userID
+// @Tags user
+// @Accept json
+// @Produce json
+// @Param id path string true "user data ID"
+// @Success 200 {object} response.SwaggerResponse
+// @Failure 400,500 {object} response.SwaggerResponse
+// @Router /api/v1/user/delete/:id [delete]
+func (h *User) Delete(c *gin.Context) {
+	var data request.DataID
+	err := c.ShouldBindUri(&data)
+	if err != nil {
+		_ = c.Error(errors.ErrInvalidParam.WithErr(err))
+	}
+	if err := h.service.Delete(c.Request.Context(), data.ID); err != nil {
+		_ = c.Error(err)
+		return
+	}
+	c.JSON(http.StatusOK, response.Success[any](c, nil))
+	return
+}
+
+// GetByID godoc
+// @Summary get user by userID
+// @Description get user by userID
+// @Tags user
+// @Accept json
+// @Produce json
+// @Param id path string true "user data ID"
+// @Success 200 {object} response.SwaggerResponse{data=response.UserResp}
+// @Failure 400,500 {object} response.SwaggerResponse
+// @Router /api/v1/user/:id [get]
+func (h *User) GetByID(c *gin.Context) {
+	var data request.DataID
+	err := c.ShouldBindUri(&data)
+	if err != nil {
+		_ = c.Error(errors.ErrInvalidParam.WithErr(err))
+	}
+	userResp, err := h.service.GetByID(c.Request.Context(), data.ID)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	c.JSON(http.StatusOK, response.Success[*response.UserResp](c, userResp))
+	return
+}
+
+// GetByUsername godoc
+// @Summary get user by username
+// @Description get user by username
+// @Tags user
+// @Accept json
+// @Produce json
+// @Param username path string true "user username"
+// @Success 200 {object} response.SwaggerResponse{data=response.UserResp}
+// @Failure 400,500 {object} response.SwaggerResponse
+// @Router /api/v1/user/username/:username [get]
+func (h *User) GetByUsername(c *gin.Context) {
+	username := c.Param("username")
+	if username == "" {
+		_ = c.Error(errors.ErrInvalidParam)
+		return
+	}
+	userResp, err := h.service.GetByUsername(c.Request.Context(), username)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	c.JSON(http.StatusOK, response.Success[*response.UserResp](c, userResp))
+	return
+}
+
+// List godoc
+// @Summary get user list
+// @Description get user list by query
+// @Tags user
+// @Accept json
+// @Produce json
+// @Param user query request.UserQuery false "user data by query"
+// @Success 200 {object} response.SwaggerResponse{data=[]response.UserResp}
+// @Failure 400,500 {object} response.SwaggerResponse
+// @Router /api/v1/user/list [get]
+func (h *User) List(c *gin.Context) {
+	var data request.UserQuery
+	if err := c.ShouldBindQuery(&data); err != nil {
+		_ = c.Error(errors.ErrInvalidParam)
+		return
+	}
+
+	userResp, err := h.service.List(c.Request.Context(), &data)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	c.JSON(http.StatusOK, response.Success[[]*response.UserResp](c, userResp))
+	return
+}
+
+// ListByPage godoc
+// @Summary get user list by paginated
+// @Description get user list by query and paginated
+// @Tags user
+// @Accept json
+// @Produce json
+// @Param user query request.UserQuery false "user data by query and paginated"
+// @Success 200 {object} response.SwaggerPaginatedData{list=[]response.UserResp}
+// @Failure 400,500 {object} response.SwaggerResponse
+// @Router /api/v1/user/page [get]
+func (h *User) ListByPage(c *gin.Context) {
+	var data request.UserQuery
+	if err := c.ShouldBindQuery(&data); err != nil {
+		_ = c.Error(errors.ErrInvalidParam)
+		return
+	}
+
+	userResp, err := h.service.ListByPage(c.Request.Context(), &data)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	c.JSON(http.StatusOK, response.Success[*response.Paginated[response.UserResp]](c, userResp))
+	return
+}
+
+---------------------------------------------------------------------------------
+具体业务代码：internal/service/$modelName/service.go
+package user
+
+import (
+	"LeotureWeb/internal/errors"
+	"LeotureWeb/internal/repository"
+	"LeotureWeb/internal/types/request"
+	"LeotureWeb/internal/types/response"
+	"LeotureWeb/internal/utils"
+	"context"
+	"github.com/google/uuid"
+)
+
+type Service interface {
+	Create(ctx context.Context, data *request.UserCreate) error
+	Update(ctx context.Context, data *request.UserUpdate) error
+	Delete(ctx context.Context, id string) error
+	GetByID(ctx context.Context, id string) (*response.UserResp, error)
+	GetByUsername(ctx context.Context, username string) (*response.UserResp, error)
+	List(ctx context.Context, data *request.UserQuery) ([]*response.UserResp, error)
+	ListByPage(ctx context.Context, data *request.UserQuery) (*response.Paginated[response.UserResp], error)
+}
+
+type userService struct {
+	transactor repository.Transaction
+	repo       repository.User
+}
+
+func NewService(transactor repository.Transaction, repo repository.User) Service {
+	return &userService{
+		transactor: transactor,
+		repo:       repo,
+	}
+}
+
+func (s *userService) Create(ctx context.Context, data *request.UserCreate) error {
+	m := data.ToModelWithPassword(utils.HashPassword(data.Password))
+	if m.Password == "" {
+		return errors.ErrInternal
+	}
+	return s.repo.Create(ctx, m, utils.GenUUIDv7())
+}
+
+func (s *userService) Update(ctx context.Context, data *request.UserUpdate) error {
+	m := data.ToModel()
+	id, err := uuid.Parse(data.ID)
+	if err != nil {
+		return err
+	}
+	return s.repo.Update(ctx, m, id)
+}
+
+func (s *userService) Delete(ctx context.Context, id string) error {
+	idn, err := uuid.Parse(id)
+	if err != nil {
+		return err
+	}
+	return s.repo.Delete(ctx, idn)
+}
+
+func (s *userService) GetByID(ctx context.Context, id string) (*response.UserResp, error) {
+	idn, err := uuid.Parse(id)
+	if err != nil {
+		return nil, err
+	}
+	user, err := s.repo.GetByID(ctx, idn)
+	if err != nil {
+		return nil, err
+	}
+	resp := response.ToUserResp(user)
+	return resp, nil
+}
+
+func (s *userService) GetByUsername(ctx context.Context, username string) (*response.UserResp, error) {
+	user, err := s.repo.GetByUsername(ctx, username)
+	if err != nil {
+		return nil, err
+	}
+	resp := response.ToUserResp(user)
+	return resp, nil
+}
+
+func (s *userService) List(ctx context.Context, data *request.UserQuery) ([]*response.UserResp, error) {
+	result, err := s.repo.List(ctx, data)
+	if err != nil {
+		return nil, err
+	}
+	resp := make([]*response.UserResp, 0, len(result))
+	for _, user := range result {
+		resp = append(resp, response.ToUserResp(user))
+	}
+	return resp, nil
+}
+
+func (s *userService) ListByPage(ctx context.Context, data *request.UserQuery) (*response.Paginated[response.UserResp], error) {
+	count, err := s.repo.Count(ctx, data)
+	if err != nil {
+		return nil, err
+	}
+	data.InitPagination(count)
+	var result = response.PagingData[response.UserResp](nil, data.Total, data.Page, data.PageSize, data.TotalPages)
+	if count == 0 {
+		return result, nil
+	}
+	list, err := s.repo.List(ctx, data)
+	if err != nil {
+		return nil, err
+	}
+	if len(list) == 0 {
+		return result, nil
+	}
+	users := make([]*response.UserResp, 0, len(list))
+	for _, user := range list {
+		users = append(users, response.ToUserResp(user))
+	}
+	result.List = users
+	return result, nil
+}
+
+---------------------------------------------------------------------------------
+数据库处理代码：internal/repository/$modelName.go
+package repository
+
+import (
+	"LeotureWeb/internal/model"
+	"LeotureWeb/internal/types/request"
+	"context"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"strings"
+)
+
+type User interface {
+	Create(ctx context.Context, m *model.User, id uuid.UUID) error
+	Update(ctx context.Context, m *model.User, id uuid.UUID) error
+	UpdatePassword(ctx context.Context, id uuid.UUID, old string, new string) error
+	GetByID(ctx context.Context, id uuid.UUID) (*model.User, error)
+	GetByUsername(ctx context.Context, username string) (*model.User, error)
+	Count(ctx context.Context, data *request.UserQuery) (int64, error)
+	List(ctx context.Context, data *request.UserQuery) ([]*model.User, error)
+	Delete(ctx context.Context, id uuid.UUID) error
+}
+
+type userRepo struct {
+	db *pgxpool.Pool
+}
+
+func NewUserRepo(db *pgxpool.Pool) User {
+	return &userRepo{db: db}
+}
+
+func (r *userRepo) Create(ctx context.Context, m *model.User, id uuid.UUID) error {
+	args := pgx.NamedArgs{
+		"id":       id,
+		"username": m.Username,
+		"password": m.Password,
+		"nickname": m.Nickname,
+		"email":    m.Email,
+		"phone":    m.Phone,
+		"status":   m.Status,
+	}
+	sql := `INSERT INTO users
+    (id, username, password, nickname, email, phone, status) VALUES
+    (@id, @username, @password, @nickname, @email, @phone, @status)`
+	_, err := r.db.Exec(ctx, sql, args)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *userRepo) Update(ctx context.Context, m *model.User, id uuid.UUID) error {
+	args := pgx.NamedArgs{
+		"id":       id,
+		"username": m.Username,
+		"nickname": m.Nickname,
+		"email":    m.Email,
+		"phone":    m.Phone,
+		"status":   m.Status,
+	}
+	sql := `UPDATE users SET
+	username=@username, nickname=@nickname, email=@email, phone=@phone, status=@status, updated_at=CURRENT_TIMESTAMP
+    WHERE deleted_at IS NULL AND id=@id`
+	tag, err := r.db.Exec(ctx, sql, args)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+	return nil
+}
+
+func (r *userRepo) UpdatePassword(ctx context.Context, id uuid.UUID, old string, new string) error {
+	args := pgx.NamedArgs{
+		"id":  id,
+		"old": old,
+		"new": new,
+	}
+	sql := `UPDATE users SET password=@new, updated_at=CURRENT_TIMESTAMP
+    WHERE deleted_at IS NULL AND id=@id AND password=@old`
+	tag, err := r.db.Exec(ctx, sql, args)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+	return nil
+}
+
+func (r *userRepo) GetByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
+	sql := `SELECT id, username, password, nickname, email, phone, status, created_at, updated_at FROM users
+    WHERE deleted_at IS NULL AND id=$1`
+	var m model.User
+	err := r.db.QueryRow(ctx, sql, id).Scan(
+		&m.ID, &m.Username, &m.Password, &m.Nickname, &m.Email, &m.Phone, &m.Status, &m.CreatedAt, &m.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &m, nil
+}
+
+func (r *userRepo) GetByUsername(ctx context.Context, username string) (*model.User, error) {
+	sql := `SELECT id, username, password, nickname, email, phone, status, created_at, updated_at FROM users
+    WHERE deleted_at IS NULL AND username=$1`
+	var m model.User
+	err := r.db.QueryRow(ctx, sql, username).Scan(
+		&m.ID, &m.Username, &m.Password, &m.Nickname, &m.Email, &m.Phone, &m.Status, &m.CreatedAt, &m.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &m, nil
+}
+
+func (r *userRepo) Count(ctx context.Context, data *request.UserQuery) (int64, error) {
+	var sql strings.Builder
+	args := pgx.NamedArgs{}
+	sql.WriteString(`SELECT COUNT(*) FROM users WHERE deleted_at IS NULL`)
+	sql.WriteString(buildUserQuerySQL(data, args))
+
+	var total int64
+	err := r.db.QueryRow(ctx, sql.String(), args).Scan(&total)
+	if err != nil {
+		return 0, err
+	}
+	return total, nil
+}
+
+func (r *userRepo) List(ctx context.Context, data *request.UserQuery) ([]*model.User, error) {
+	var sql strings.Builder
+	args := pgx.NamedArgs{}
+	sql.WriteString(`SELECT id, username, password, nickname, email, phone, status, created_at, updated_at
+    FROM users WHERE deleted_at IS NULL`)
+	sql.WriteString(buildUserQuerySQL(data, args))
+	sql.WriteString(` ORDER BY created_at DESC`)
+	if data.PageSize > 0 && data.Page > 0 {
+		sql.WriteString(` LIMIT @limit OFFSET @offset`)
+		args["limit"] = data.PageSize
+		args["offset"] = (data.Page - 1) * data.PageSize
+	}
+
+	var list []*model.User
+	rows, err := r.db.Query(ctx, sql.String(), args)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var m model.User
+		err = rows.Scan(&m.ID, &m.Username, &m.Password, &m.Nickname, &m.Email, &m.Phone, &m.Status, &m.CreatedAt, &m.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		list = append(list, &m)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+func (r *userRepo) Delete(ctx context.Context, id uuid.UUID) error {
+	sql := `UPDATE users SET deleted_at=CURRENT_TIMESTAMP WHERE deleted_at IS NULL AND id=$1`
+	tag, err := r.db.Exec(ctx, sql, id)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+	return nil
+}
+
+func buildUserQuerySQL(req *request.UserQuery, args pgx.NamedArgs) string {
+	var sql strings.Builder
+	if req.Username != "" {
+		sql.WriteString(` AND username=@username`)
+		args["username"] = req.Username
+	}
+	if req.Nickname != "" {
+		sql.WriteString(` AND nickname LIKE '%@nickname%'`)
+		args["nickname"] = req.Nickname
+	}
+	if req.Email != "" {
+		sql.WriteString(` AND email=@email`)
+		args["email"] = req.Email
+	}
+	if req.Phone != "" {
+		sql.WriteString(` AND phone=@phone`)
+		args["phone"] = req.Phone
+	}
+	if req.Status != 0 {
+		sql.WriteString(` AND status=@status`)
+		args["status"] = req.Status
+	}
+	if req.DateStart != nil && req.DateEnd != nil {
+		sql.WriteString(` AND created_at >= @start AND created_at <= @end`)
+		args["start"] = req.DateStart
+		args["end"] = req.DateEnd
+	}
+	return sql.String()
+}
+
+package model
+
+import (
+	"github.com/google/uuid"
+	"time"
+)
+
+根据LoginLog数据库映射结构体，结合上述代码模板和规范，帮我生成代码
+// Dict 系统字典表
+// Table dictionaries
+type Dict struct {
+	ID        uuid.UUID `json:"id"  db:"id"`
+	Name      string    `json:"name"  db:"name"`
+	Category  string    `json:"category"  db:"category"` // 字典类别
+	Key       string    `json:"key" db:"key"`                 // 字典key
+	Val       string    `json:"val"  db:"val"`           // 字典value
+	Sort      int       `json:"sort"  db:"sort"`
+	IsDefault bool      `json:"is_default"  db:"is_default"` // 是否选项默认值
+	Status    Status    `json:"status" db:"status"`               // 状态，1:正常, 2:禁用
+	Remark    string    `json:"remark"  db:"remark"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// TableName 返回表名，方便后续 ORM/QueryBuilder 使用
+func (Dict) TableName() string { return "dictionaries" }
+
+
+jwtService, err := auth.GetJWT()
+	if err != nil {
+		bizErr := errs.NewBizError(errs.InternalServerError, "Error in jwt service")
+		c.Set("error", bizErr)
+		return
+	}
+	// 签发 Token（jwtManager 通过依赖注入或全局变量获取）
+	accessToken, err := jwtService.GenerateAccessToken("1", "leoture", "x")
+	if err != nil {
+		bizErr := errs.NewBizError(errs.InternalServerError, "Error in jwt service")
+		c.Set("error", bizErr)
+		return
+	}
+
+	//refreshToken, err := jwtService.GenerateRefreshToken("1", "leoture", "x")
+	//if err != nil {
+	//	bizErr := errs.NewBizError(errs.InternalServerError, "Error in jwt service")
+	//	c.Set("error", bizErr)
+	//	return
+	//}

@@ -1,0 +1,35 @@
+一、基础数据类型
+类别       类型                         描述                              示例值
+数值类型    SMALLINT                    2字节整数，范围-32768~32767         123
+           INTEGER / INT               4字节整数(常用)                    -42
+           BIGINT                      8字节大整数                        9223372036854775807
+           DECIMAL(p,s) / NUMERIC      精确小数，p为精度，s为小数位数        123.99
+           REAL                        4字节浮点数                        3.14159
+           DOUBLE PRECISION            8字节浮点数                        1.2345678901234e+10
+           SERIAL / BIGSERIAL          自增整数(常用于主键)                1, 2, 3...
+
+字符类型    VARCHAR(n)                  变长字符串，n为最大长度              'hello'
+           CHAR(n)                     定长字符串，不足补空格               'abc '(n=5)
+           TEXT                        无限长度文本(推荐代替VARCHAR)       'Lorem ipsum...'
+二进制类型   BYTEA                       二进制数据(如图片、文件)            '\xDEADBEEF'
+
+布尔类型     BOOLEAN                     真 / 假值                        TRUE,FALSE,NULL
+
+日期与时间   DATE                        日期(年月日)                       '2023-10-01'
+           TIME                        时间(时分秒)                       '14:30:00'
+           TIMESTAMP                   日期+时间(无时区)                   '2023-10-01 14:30:00'
+           TIMESTAMPTZ                 带时区的日期时间(推荐)               '2023-10-01 14:30:00+08'
+           INTERVAL                    时间间隔                           '1 day 2 hours'
+
+特殊类型     数组类型                     同类型元素的数组                    {1, 2, 3},{{'a','b'}, {'c','d'}}
+            JSON / JSONB               JSON(文本存储)、JSONB(二进制，推荐)  '{"name": "Alice", "age": 30}'
+            UUID                       全局唯一标识符                      'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+            枚举类型                    自定义枚举(需CREATE TYPE定义)        'RED','GREEN'
+            范围类型                    表示数值 / 日期范围                  [1, 10),'[2023-01-01, 2023-12-31]'
+            复合类型                    类似结构体的自定义类型                (1, 'Alice')
+            几何类型                    点、线、多边形等(需PostGIS扩展)       POINT(10 20),POLYGON((0 0, 1 1, 1 0))
+            网络地址类型                 IPv4 / IPv6 / MAC地址              '192.168.1.1/24','2001:db8::1'
+            全文检索类型                 TSVECTOR(分词)、TSQUERY(查询)       'cat & dog'::TSQUERY
+            XML                        XML文档存储                         <book><title>SQL</title></book>
+            HSTORE                     键值对存储(需hstore扩展)             'a=>1, b=>2'
+            自定义类型                   通过CREATE TYPE定义                 适应业务需求的特殊数据结构

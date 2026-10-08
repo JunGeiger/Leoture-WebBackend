@@ -1,0 +1,80 @@
+1. 绑定源指定（Binding Source）
+告诉 Gin 从哪获取数据：
+    form: 用于 URL 查询参数（GET）或 x-www-form-urlencoded（POST）
+    json: 用于 application/json
+    xml: 用于 application/xml
+    yaml: 用于 application/x-yaml
+    uri: 用于 URL Path 参数（如 /users/:id）
+    header: 用于 HTTP Header
+    query: 专门用于 query string（区别于 form，更语义化）
+
+2. Validator 校验规则（binding 属性）
+这是 go-playground/validator/v10 提供的规则集：
+基础规则：
+    required: 必填
+    omitempty: 如果为空则忽略后续校验（常用于更新接口）
+    len=n: 长度等于 n
+    min=n: 最小值/最小长度
+    max=n: 最大值/最大长度
+    eq=n: 等于
+    ne=n: 不等于
+    lt=n: 小于
+    lte=n: 小于等于
+    gt=n: 大于
+    gte=n: 大于等于
+    oneof=v1 v2 v3: 必须是其中一个值（常用于枚举）
+    -: 跳过该字段的绑定和校验
+
+字符串规则：
+    email: 邮箱格式
+    url: URL 格式
+    uuid: UUID 格式
+    alpha: 仅字母
+    alphanum: 字母数字
+    numeric: 数字字符串
+    contains=s: 包含子串 s
+    excludes=s: 不包含子串 s
+    startswith=s: 前缀
+    endswith=s: 后缀
+
+数字规则：
+    eqfield=FieldName: 等于另一个字段的值（如确认密码）
+    nefield=FieldName: 不等于另一个字段
+    gtfield=FieldName: 大于另一个字段
+    gtefield=FieldName: 大于等于另一个字段
+    ltfield=FieldName: 小于另一个字段
+    ltefield=FieldName: 小于等于另一个字段
+
+数组/切片规则：
+    dive: 深入切片或数组进行校验（非常重要）
+    type Request struct {
+        IDs []int `json:"ids" binding:"required,dive,gt=0"` // 每个ID必须大于0
+    }
+    unique: 切片中的元素必须唯一
+
+文件上传：
+    file: 文件校验
+    filepath: 文件路径校验
+
+运行时绑定方法配置（Handler 层）
+在 internal/handler 中，根据请求类型选择不同的绑定方法：
+1. ShouldBind / MustBindWith
+    c.ShouldBind(obj): 自动根据 Content-Type 推断（JSON, Form, Query）。推荐。
+    c.ShouldBindJSON(obj): 强制绑定 JSON。
+    c.ShouldBindQuery(obj): 强制绑定 Query String。
+    c.ShouldBindUri(obj): 绑定 URI 路径参数。
+    c.ShouldBindHeader(obj): 绑定 Header。
+    c.ShouldBindWith(obj, binding.JSON): 指定绑定引擎。
+2. 绑定行为差异
+    ShouldBind* 系列：绑定失败返回错误，不中断请求（HTTP 状态码不变）。适合你在 Handler 中自行处理错误（配合你的全局错误处理中间件）。
+    MustBindWith 系列：绑定失败会 自动返回 400​ 并终止请求。如果你使用了自定义的响应中间件，建议慎用此方法，以免绕过你的 response.go 标准格式。
+    Gin 支持 time_format 和 time_utc tag。
+
+todo：禁用强制类型转换（安全考虑）
+默认情况下，Gin 会将字符串 "123" 自动转为数字 123。如果不希望这样（防止精度丢失或逻辑漏洞），可以在初始化时配置：
+binding.EnableDecoderDisallowUnknownFields = true // 禁止提交未定义的字段
+binding.EnableDecoderUseNumber = true // 使用 json.Number 代替 float64
+五、Swagger 注解配合
+由于你使用了 swagger，在 internal/types/request 的结构体上需要加上注释，以便 swag init 生成文档：
+// @Param username body string true "用户名" minlength(3) maxlength(20)
+// @Param password body string true "密码" minlength(6)

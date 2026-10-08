@@ -1,0 +1,1440 @@
+basePath: /api/v1
+definitions:
+  errors.ResponseCode:
+    enum:
+    - 1000
+    - 1001
+    - 1002
+    - 1003
+    - 4000
+    - 4001
+    - 4002
+    - 4003
+    - 4004
+    - 4009
+    - 4029
+    - 5000
+    - 5003
+    - 5004
+    - 5005
+    - 5006
+    type: integer
+    x-enum-varnames:
+    - CodeSuccess
+    - CodeCreated
+    - CodeUpdated
+    - CodeDeleted
+    - CodeInvalidParam
+    - CodeUnauthenticated
+    - CodeTokenExpired
+    - CodeForbidden
+    - CodeNotFound
+    - CodeAlreadyExists
+    - CodeTooManyRequests
+    - CodeInternal
+    - CodeServiceUnavailable
+    - CodeTimeout
+    - CodeDatabaseError
+    - CodeCacheError
+  request.MenuCreate:
+    properties:
+      name:
+        description: 菜单名称
+        type: string
+      parentID:
+        description: 父菜单ID
+        type: string
+      path:
+        description: 路由地址
+        type: string
+      sort:
+        description: 菜单排序
+        type: integer
+      status:
+        description: 数据状态：1:正常, 2:禁用
+        enum:
+        - 1
+        - 2
+        type: integer
+      type:
+        description: 菜单类型：1-目录, 2-菜单, 3-按钮, 4-路由
+        enum:
+        - 1
+        - 2
+        - 3
+        - 4
+        type: integer
+    required:
+    - name
+    - parentID
+    - path
+    - sort
+    - status
+    - type
+    type: object
+  request.MenuUpdate:
+    properties:
+      id:
+        type: string
+      name:
+        description: 菜单名称
+        type: string
+      parentId:
+        description: 父菜单ID
+        type: string
+      path:
+        description: 路由地址
+        type: string
+      sort:
+        description: 菜单排序
+        type: integer
+      status:
+        description: 数据状态：1:正常, 2:禁用
+        enum:
+        - 1
+        - 2
+        type: integer
+      type:
+        description: 菜单类型：1-目录, 2-菜单, 3-按钮, 4-路由
+        enum:
+        - 1
+        - 2
+        - 3
+        - 4
+        type: integer
+    required:
+    - id
+    type: object
+  request.RoleCreate:
+    properties:
+      code:
+        description: 角色编码
+        type: string
+      name:
+        description: 角色名称
+        type: string
+      remark:
+        description: 角色说明
+        type: string
+      status:
+        description: 数据状态：1:正常, 2:禁用
+        enum:
+        - 1
+        - 2
+        type: integer
+    required:
+    - code
+    - name
+    - status
+    type: object
+  request.RoleMenus:
+    properties:
+      menuIDs:
+        description: 多个菜单ID
+        items:
+          type: string
+        type: array
+      roleID:
+        description: 角色ID
+        type: string
+    required:
+    - menuIDs
+    - roleID
+    type: object
+  request.RoleUpdate:
+    properties:
+      code:
+        description: 角色编码
+        type: string
+      id:
+        type: string
+      name:
+        description: 角色名称
+        type: string
+      remark:
+        description: 角色说明
+        type: string
+      status:
+        description: 数据状态：1:正常, 2:禁用
+        enum:
+        - 1
+        - 2
+        type: integer
+    required:
+    - id
+    type: object
+  request.UserCreate:
+    properties:
+      email:
+        description: 用户邮箱
+        type: string
+      nickname:
+        description: 用户昵称
+        type: string
+      password:
+        description: 用户密码
+        type: string
+      phone:
+        description: 用户手机号码
+        type: string
+      status:
+        description: 数据状态：1:正常, 2:禁用
+        enum:
+        - 1
+        - 2
+        type: integer
+      username:
+        description: 用户名称
+        type: string
+    required:
+    - email
+    - nickname
+    - password
+    - phone
+    - status
+    - username
+    type: object
+  request.UserRoles:
+    properties:
+      roleIDs:
+        items:
+          type: string
+        type: array
+      userID:
+        type: string
+    required:
+    - roleIDs
+    - userID
+    type: object
+  request.UserUpdate:
+    properties:
+      email:
+        description: 用户邮箱
+        type: string
+      id:
+        type: string
+      nickname:
+        description: 用户昵称
+        type: string
+      phone:
+        description: 用户手机号码
+        type: string
+      status:
+        description: 数据状态：1:正常, 2:禁用
+        enum:
+        - 1
+        - 2
+        type: integer
+      username:
+        description: 用户名称
+        type: string
+    required:
+    - id
+    type: object
+  response.MenuResp:
+    properties:
+      createdTime:
+        description: 创建时间
+        type: string
+      id:
+        description: 菜单ID
+        type: string
+      name:
+        description: 菜单名称
+        type: string
+      parentID:
+        description: 菜单父ID
+        type: string
+      path:
+        description: 路由地址
+        type: string
+      sort:
+        description: 菜单排序
+        type: integer
+      status:
+        description: 数据状态：1:正常, 2:禁用
+        type: integer
+      type:
+        description: 菜单类型：1-目录, 2-菜单, 3-按钮, 4-路由
+        type: integer
+      updatedTime:
+        description: 更新时间
+        type: string
+    type: object
+  response.MenuTreeResp:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/response.MenuTreeResp'
+        type: array
+      createdTime:
+        description: 创建时间
+        type: string
+      id:
+        description: 菜单ID
+        type: string
+      name:
+        description: 菜单名称
+        type: string
+      parentID:
+        description: 菜单父ID
+        type: string
+      path:
+        description: 路由地址
+        type: string
+      sort:
+        description: 菜单排序
+        type: integer
+      status:
+        description: 数据状态：1:正常, 2:禁用
+        type: integer
+      type:
+        description: 菜单类型：1-目录, 2-菜单, 3-按钮, 4-路由
+        type: integer
+      updatedTime:
+        description: 更新时间
+        type: string
+    type: object
+  response.RoleResp:
+    properties:
+      code:
+        description: 角色编码
+        type: string
+      created_at:
+        description: 创建时间
+        type: string
+      id:
+        description: 角色ID
+        type: string
+      name:
+        description: 角色名称
+        type: string
+      remark:
+        description: 角色说明
+        type: string
+      status:
+        description: 数据状态：1:正常, 2:禁用
+        type: integer
+      updated_at:
+        description: 更新时间
+        type: string
+    type: object
+  response.SwaggerPaginatedData:
+    properties:
+      list:
+        description: 当前页数据列表（空时返回 [] 而非 null）
+      page:
+        description: 当前页码（从 1 开始）
+        type: integer
+      page_size:
+        description: 每页条数
+        type: integer
+      total:
+        description: 总记录数
+        type: integer
+      total_pages:
+        description: 总页数（自动计算）
+        type: integer
+    type: object
+  response.SwaggerResponse:
+    properties:
+      code:
+        allOf:
+        - $ref: '#/definitions/errors.ResponseCode'
+        description: 业务状态码
+      data:
+        description: 业务数据，错误时省略
+      message:
+        description: 面向用户的提示信息
+        type: string
+      request_id:
+        description: 请求唯一标识
+        type: string
+    type: object
+  response.UserResp:
+    properties:
+      created_at:
+        description: 创建时间
+        type: string
+      email:
+        description: 邮箱地址
+        type: string
+      id:
+        description: 用户ID
+        type: string
+      nickname:
+        description: 用户昵称
+        type: string
+      phone:
+        description: 手机号码
+        type: string
+      status:
+        description: 数据状态：1:正常, 2:禁用
+        type: integer
+      updated_at:
+        description: 更新时间
+        type: string
+      username:
+        description: 用户名称
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: 这是一个基于 Gin 框架的 Web 项目 API 文档
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: LeotureWeb API
+  version: "1.0"
+paths:
+  /api/v1/menu/{id}:
+    get:
+      consumes:
+      - application/json
+      description: 根据ID获取菜单详情
+      parameters:
+      - description: 菜单ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.SwaggerResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.MenuResp'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+      summary: 获取菜单详情
+      tags:
+      - menu
+  /api/v1/menu/create:
+    post:
+      consumes:
+      - application/json
+      description: 创建新菜单
+      parameters:
+      - description: 菜单数据
+        in: body
+        name: menu
+        required: true
+        schema:
+          $ref: '#/definitions/request.MenuCreate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+      summary: 创建菜单
+      tags:
+      - menu
+  /api/v1/menu/delete/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 软删除菜单
+      parameters:
+      - description: 菜单ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+      summary: 删除菜单
+      tags:
+      - menu
+  /api/v1/menu/list:
+    get:
+      consumes:
+      - application/json
+      description: 根据条件获取菜单列表
+      parameters:
+      - in: query
+        name: dataEnd
+        type: string
+      - in: query
+        name: dateStart
+        type: string
+      - description: 菜单名称
+        in: query
+        name: name
+        type: string
+      - description: 当前页码（从 1 开始）
+        in: query
+        name: page
+        type: integer
+      - description: 每页条数
+        in: query
+        name: pageSize
+        type: integer
+      - description: 父菜单ID
+        in: query
+        name: parentId
+        type: string
+      - description: 数据状态
+        enum:
+        - 1
+        - 2
+        in: query
+        name: status
+        type: integer
+      - description: 总记录数
+        in: query
+        name: total
+        type: integer
+      - description: 总页数（自动计算）
+        in: query
+        name: totalPages
+        type: integer
+      - description: 菜单类型
+        enum:
+        - 1
+        - 2
+        - 3
+        - 4
+        in: query
+        name: type
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.SwaggerResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/response.MenuResp'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+      summary: 获取菜单列表
+      tags:
+      - menu
+  /api/v1/menu/page:
+    get:
+      consumes:
+      - application/json
+      description: 根据条件分页获取菜单列表
+      parameters:
+      - in: query
+        name: dataEnd
+        type: string
+      - in: query
+        name: dateStart
+        type: string
+      - description: 菜单名称
+        in: query
+        name: name
+        type: string
+      - description: 当前页码（从 1 开始）
+        in: query
+        name: page
+        type: integer
+      - description: 每页条数
+        in: query
+        name: pageSize
+        type: integer
+      - description: 父菜单ID
+        in: query
+        name: parentId
+        type: string
+      - description: 数据状态
+        enum:
+        - 1
+        - 2
+        in: query
+        name: status
+        type: integer
+      - description: 总记录数
+        in: query
+        name: total
+        type: integer
+      - description: 总页数（自动计算）
+        in: query
+        name: totalPages
+        type: integer
+      - description: 菜单类型
+        enum:
+        - 1
+        - 2
+        - 3
+        - 4
+        in: query
+        name: type
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.SwaggerPaginatedData'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/response.MenuResp'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+      summary: 分页获取菜单列表
+      tags:
+      - menu
+  /api/v1/menu/tree:
+    get:
+      consumes:
+      - application/json
+      description: 根据条件分页获取菜单列表
+      parameters:
+      - in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.SwaggerPaginatedData'
+            - properties:
+                list:
+                  items:
+                    $ref: '#/definitions/response.MenuResp'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+      summary: 分页获取菜单列表
+      tags:
+      - menu
+  /api/v1/menu/update:
+    post:
+      consumes:
+      - application/json
+      description: 更新菜单信息
+      parameters:
+      - description: 菜单数据
+        in: body
+        name: menu
+        required: true
+        schema:
+          $ref: '#/definitions/request.MenuUpdate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+      summary: 更新菜单
+      tags:
+      - menu
+  /api/v1/role-menu/menus/:roleID:
+    get:
+      consumes:
+      - application/json
+      description: get menu list by roleID
+      parameters:
+      - description: role data ID
+        in: path
+        name: userID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.SwaggerResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/response.MenuTreeResp'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+      summary: get menu list
+      tags:
+      - role
+  /api/v1/role-menu/update:
+    post:
+      consumes:
+      - application/json
+      description: create role menu correlations
+      parameters:
+      - description: role-menu data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/request.RoleMenus'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+      summary: create roleMenu
+      tags:
+      - user
+  /api/v1/role/:id:
+    get:
+      consumes:
+      - application/json
+      description: get role by roleID
+      parameters:
+      - description: role data ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.SwaggerResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.RoleResp'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+      summary: get role by roleID
+      tags:
+      - role
+  /api/v1/role/code/:code:
+    get:
+      consumes:
+      - application/json
+      description: get role by code
+      parameters:
+      - description: role data code
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.SwaggerResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.RoleResp'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+      summary: get role by code
+      tags:
+      - role
+  /api/v1/role/create:
+    post:
+      consumes:
+      - application/json
+      description: create role
+      parameters:
+      - description: role data
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/request.RoleCreate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+      summary: create role
+      tags:
+      - role
+  /api/v1/role/delete/:id:
+    delete:
+      consumes:
+      - application/json
+      description: delete role by roleID
+      parameters:
+      - description: role data ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+      summary: delete role
+      tags:
+      - role
+  /api/v1/role/list:
+    get:
+      consumes:
+      - application/json
+      description: get role list by query
+      parameters:
+      - description: 角色编码
+        in: query
+        name: code
+        type: string
+      - in: query
+        name: dataEnd
+        type: string
+      - in: query
+        name: dateStart
+        type: string
+      - description: 角色名称
+        in: query
+        name: name
+        type: string
+      - description: 当前页码（从 1 开始）
+        in: query
+        name: page
+        type: integer
+      - description: 每页条数
+        in: query
+        name: pageSize
+        type: integer
+      - description: 角色说明
+        in: query
+        name: remark
+        type: string
+      - description: 数据状态：1:正常, 2:禁用
+        enum:
+        - 1
+        - 2
+        in: query
+        name: status
+        type: integer
+      - description: 总记录数
+        in: query
+        name: total
+        type: integer
+      - description: 总页数（自动计算）
+        in: query
+        name: totalPages
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.SwaggerResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/response.RoleResp'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+      summary: get role list
+      tags:
+      - role
+  /api/v1/role/page:
+    get:
+      consumes:
+      - application/json
+      description: get role list by query and paginated
+      parameters:
+      - description: 角色编码
+        in: query
+        name: code
+        type: string
+      - in: query
+        name: dataEnd
+        type: string
+      - in: query
+        name: dateStart
+        type: string
+      - description: 角色名称
+        in: query
+        name: name
+        type: string
+      - description: 当前页码（从 1 开始）
+        in: query
+        name: page
+        type: integer
+      - description: 每页条数
+        in: query
+        name: pageSize
+        type: integer
+      - description: 角色说明
+        in: query
+        name: remark
+        type: string
+      - description: 数据状态：1:正常, 2:禁用
+        enum:
+        - 1
+        - 2
+        in: query
+        name: status
+        type: integer
+      - description: 总记录数
+        in: query
+        name: total
+        type: integer
+      - description: 总页数（自动计算）
+        in: query
+        name: totalPages
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.SwaggerPaginatedData'
+            - properties:
+                list:
+                  items:
+                    $ref: '#/definitions/response.RoleResp'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+      summary: get role list by paginated
+      tags:
+      - role
+  /api/v1/role/update:
+    post:
+      consumes:
+      - application/json
+      description: update role by roleID
+      parameters:
+      - description: role data
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/request.RoleUpdate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+      summary: update role
+      tags:
+      - role
+  /api/v1/user-role/roles/:userID:
+    get:
+      consumes:
+      - application/json
+      description: get role list by userID
+      parameters:
+      - description: user data ID
+        in: path
+        name: userID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+      summary: get role list
+      tags:
+      - role
+  /api/v1/user-role/update:
+    post:
+      consumes:
+      - application/json
+      description: create user role correlations
+      parameters:
+      - description: user-role data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/request.UserRoles'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+      summary: create userRole
+      tags:
+      - user
+  /api/v1/user/:id:
+    get:
+      consumes:
+      - application/json
+      description: get user by userID
+      parameters:
+      - description: user data ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.SwaggerResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.UserResp'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+      summary: get user by userID
+      tags:
+      - user
+  /api/v1/user/create:
+    post:
+      consumes:
+      - application/json
+      description: create user
+      parameters:
+      - description: user data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/request.UserCreate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+      summary: create user
+      tags:
+      - user
+  /api/v1/user/delete/:id:
+    delete:
+      consumes:
+      - application/json
+      description: delete user by userID
+      parameters:
+      - description: user data ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+      summary: delete user
+      tags:
+      - user
+  /api/v1/user/list:
+    get:
+      consumes:
+      - application/json
+      description: get user list by query
+      parameters:
+      - in: query
+        name: dataEnd
+        type: string
+      - in: query
+        name: dateStart
+        type: string
+      - description: 邮箱地址
+        in: query
+        name: email
+        type: string
+      - description: 用户昵称
+        in: query
+        name: nickname
+        type: string
+      - description: 当前页码（从 1 开始）
+        in: query
+        name: page
+        type: integer
+      - description: 每页条数
+        in: query
+        name: pageSize
+        type: integer
+      - description: 手机号码
+        in: query
+        name: phone
+        type: string
+      - description: 数据状态
+        enum:
+        - 1
+        - 2
+        in: query
+        name: status
+        type: integer
+      - description: 总记录数
+        in: query
+        name: total
+        type: integer
+      - description: 总页数（自动计算）
+        in: query
+        name: totalPages
+        type: integer
+      - description: 用户名称
+        in: query
+        name: username
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.SwaggerResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/response.UserResp'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+      summary: get user list
+      tags:
+      - user
+  /api/v1/user/page:
+    get:
+      consumes:
+      - application/json
+      description: get user list by query and paginated
+      parameters:
+      - in: query
+        name: dataEnd
+        type: string
+      - in: query
+        name: dateStart
+        type: string
+      - description: 邮箱地址
+        in: query
+        name: email
+        type: string
+      - description: 用户昵称
+        in: query
+        name: nickname
+        type: string
+      - description: 当前页码（从 1 开始）
+        in: query
+        name: page
+        type: integer
+      - description: 每页条数
+        in: query
+        name: pageSize
+        type: integer
+      - description: 手机号码
+        in: query
+        name: phone
+        type: string
+      - description: 数据状态
+        enum:
+        - 1
+        - 2
+        in: query
+        name: status
+        type: integer
+      - description: 总记录数
+        in: query
+        name: total
+        type: integer
+      - description: 总页数（自动计算）
+        in: query
+        name: totalPages
+        type: integer
+      - description: 用户名称
+        in: query
+        name: username
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.SwaggerPaginatedData'
+            - properties:
+                list:
+                  items:
+                    $ref: '#/definitions/response.UserResp'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+      summary: get user list by paginated
+      tags:
+      - user
+  /api/v1/user/update:
+    post:
+      consumes:
+      - application/json
+      description: update user by userID
+      parameters:
+      - description: user data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/request.UserUpdate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+      summary: update user
+      tags:
+      - user
+  /api/v1/user/username/:username:
+    get:
+      consumes:
+      - application/json
+      description: get user by username
+      parameters:
+      - description: user username
+        in: path
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.SwaggerResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.UserResp'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SwaggerResponse'
+      summary: get user by username
+      tags:
+      - user
+securityDefinitions:
+  BearerAuth:
+    description: Bearer Token for authentication
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

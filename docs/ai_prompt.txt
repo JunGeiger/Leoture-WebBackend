@@ -1,0 +1,167 @@
+你是一名资深的go web开发工程师和经验非常丰富的软件架构师，现在我们正在开发一个web项目
+
+项目名称：LeotureWeb
+go版本：1.26.2
+
+项目文件目录结构：
+    cmd：程序入口
+        leoture.go
+    config：项目配置文件目录
+        config.yaml
+        rbac.conf casbin配置文件
+    deploy：项目部署脚本
+    devtools：项目开发工具
+    docs：项目文档
+        swagger：接口文档
+            docs.go swag生成文件
+            swagger.go swag初始化
+            swagger.json swag生成文件
+            swagger.yaml swag生成文件
+        ai_prompt.md ai代码生成提示词
+    internal：内部模块
+        auth：权限处理
+            casbin.go casbin_service
+            claims.go jwt_claims
+            jwt.go jwt_service
+        cache：外部缓存初始化
+            redis.go
+        config：配置文件处理程序
+            config.go
+            defaults.go
+            types.go
+        database：数据库初始化
+            postgres.go
+        errors
+            biz_error.go gin全局错误结构体
+            error_codes.go 错误码定义
+        handler：网络请求处理层
+            example.go 示例程序
+            login.go 登录请求处理
+        logger：日志处理程序
+            logger.go
+        middleware：其他框架中间处理层
+            auth.go jwt中间件
+            cors.go gin设置跨域
+            error.go gin全局错误处理
+            log.go gin日志中间层
+            req.go gin请求加入requestID等数据
+            resp.go gin响应全局处理
+        model：数据库映射层
+            casbin_rule.go
+            menu.go
+            permission.go
+            role_menus.go
+            role.go
+            role_permissions.go
+            userl.go
+            user_roles.go
+        repository：数据库操作层
+            casbin.go
+        router：url和handler映射
+            example.go 示例程序
+            router.go gin路由初始化
+        scheduler： 定时任务组件
+            jobs： 定时任务包
+                example.go
+            register.go 定时任务注册器
+            scheduler.go 定时任务组件初始化
+        service：业务处理层
+            role：权限业务
+                service.go
+        types：数据对象目录
+            request：请求结构体，根据业务划分
+            response：返回结构体，根据业务划分
+                example.go 示例响应结构体
+                menu.go
+                swagger.go
+            request.go 全局请求结构体
+            response.go 全局响应结构体
+        utils：工具包
+            goid.go 获取goroutineID工具
+            probe.go tcp地址验证工具
+            uuid.go 封装uuid生成工具
+    migrations：postgresql数据库备份文件
+        rbac.sql
+    static：静态文件
+    tests：测试用例
+    third_party：第三方包
+    go.mod：依赖配置文件
+    README.md：项目描述文档
+
+现在已经成功引入了
+    viper v1.21.0作为配置管理工具
+    slog 作为日志管理工具
+    gin v1.12.0作为web框架
+    gin-swagger v1.6.1作为api文档框架
+    pgx v5.9.2作为数据库驱动框架
+    go-redis v9.19.0作为Redis缓存驱动框架
+    robfig/cron v3.0.1作为本地单机定时任务组件
+    jwt v5.3.1作为身份认证工具
+    casbin v3.10.0 作为rbac业务处理框架
+
+已经完成了全局响应标准化 & 统一错误处理、链路追踪 (Tracing)
+
+思考要求：先确认需要哪些信息来确保回答正确？把目标逐渐转化为实现过程中可能遇到的问题，然后把问题输出给我。
+
+回答要求：按照顺序逐项排查
+1、输出的功能代码中，优先排查官方库、优秀开源项目是否已有具体实现，有的话提供库名称或者地址，拒绝重复造轮子。
+2、代码版本依赖以读取go.mod文件中的数据为准，相关代码中调用的API要严格与依赖版本一致。
+3、输出代码严格遵守官方文档，以相关规范和最佳实践为基础，保持简单范式，确保代码符合GO Idiomatic。
+4、如果有增强或者优化方案，直接加在原方案中。
+5、回答文本删除特殊符号，以常见文字或者字符替代。
+
+todo：使用openjob作为定时任务框架，引入prometheus、grafana作为服务监控
+
+记得勾选深度思考
+
+[
+  {
+    id: 4,
+    path: "/system",
+    name: "System",
+    component: "/index/index",
+    meta: {
+      title: "menus.system.title",
+      icon: "ri:user-3-line",
+      keepAlive: false,
+    },
+    children: [
+      {
+        id: 41,
+        path: "user",
+        name: "User",
+        component: "/system/user",
+        meta: {
+          title: "menus.system.user",
+          keepAlive: true,
+        },
+      },
+      {
+        id: 42,
+        path: "role",
+        name: "RoleCreate",
+        component: "/system/role",
+        meta: {
+          title: "menus.system.role",
+          keepAlive: true,
+        },
+      },
+    ],
+  },
+];
+
+现在我们引入 casbin v3.10.0作为rbac业务处理框架
+noho-digital/casbin-pgx-adapter v1.2.1 作为casbin-pgx适配器
+apache/casbin-redis-watcher v2.8.0 作为casbin-watcher观察者
+权限数据示例例：
+允许：p, role, /api/*, GET,POST,PUT,DELETE,PATCH, allow
+禁止：p, role, /api/*, GET,POST,PUT,DELETE,PATCH, deny
+角色：g, user01, manager
+角色：g, user01, treasurer
+权限数据缓存和更新逻辑：
+redis缓存：官方redis-watcher
+本地缓存：SyncedCachedEnforcer
+更新时使用 LoadFilteredPolicy
+请提供接入方案和详细代码，且加上必要注释
+
+支持计算权限树返回给前端进行展示判断
