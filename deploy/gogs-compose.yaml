@@ -1,0 +1,40 @@
+# 数据库账户密码:gogs gogs_database
+# 用户名密码:leotureGit leoture#Git
+# 注意：若绑定的IP无法使用，请不要强制用现有IP访问
+# 数据目录: 挂载到gogs_data
+# 访问地址:http://serverIp:13000/
+# 安装教程地址:https://www.cnblogs.com/shanfeng1000/p/14622319.html
+# 配置数据位置：/var/lib/docker/volumes/leoture_gogs_data/_data/gogs/conf/app.ini
+services:
+  gogs:
+    image: gogs/gogs:0.14.3
+    container_name: gogs
+    restart: unless-stopped
+    ports:
+      - "13000:3000"   # HTTP Web UI
+      - "10022:22"     # SSH Git 协议
+    volumes:
+      # 数据映射，卷挂载
+      - gogs_data:/data
+    networks:
+      - gogs-net
+    environment:
+      TZ: Asia/Shanghai # 设置容器时区
+    cpus: 1.0 # cpu限制
+    mem_limit: 1G # 内存限制
+    memswap_limit: 1G
+    depends_on:
+      postgres:
+        condition: service_healthy # 等待 PostgreSQL 健康检查通过
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+volumes: # 数据卷
+  gogs_data:
+    driver: local
+networks:
+  gogs-net:
+    name: leoture_gogs_net
+    driver: bridge

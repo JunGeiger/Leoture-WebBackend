@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: postgres:17.10
+    container_name: postgres17
+    restart: unless-stopped
+    ports:
+      # 生产环境建议改为："127.0.0.1:5432:5432"
+      - "5432:5432"
+    volumes:
+      # 数据映射，卷挂载
+      - postgres_data:/var/lib/postgresql/data
+      # 【可选】备份目录，备份命令：docker exec pg pg_dump -U postgres -Fc appdb -f /backup/appdb_$(date +%F).dump
+      - postgres_backup:/backup
+      # 【可选】自定义 PostgreSQL 配置文件 将本地 ./pgsql/postgresql.conf 挂载到容器内，取消注释后需确保本地文件存在
+      - ./pgsql/postgresql.conf:/var/lib/postgresql/data/postgresql.conf
+      # 【可选】自定义 pg_hba.conf（客户端认证配置文件）
+      # - ./config/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      # 【可选】初始化脚本目录 容器首次启动时，会自动执行此目录下的 .sql / .sh 脚本，适合执行建表、插入初始数据等操作
+      - ./pgsql/scripts:/docker-entrypoint-initdb.d:ro
+    networks:
+      - postgres-net
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: leoture_server
+      TZ: Asia/Shanghai
+      PGTZ: Asia/Shanghai
+    cpus: 4.0 # cpu限制
+    mem_limit: 6G # 内存限制
+    memswap_limit: 6G
+    mem_reservation: 3G
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+volumes:
+  postgres_data:
+    driver: local
+  postgres_backup:
+    driver: local
+networks:
+  postgres-net:
+    name: leoture_postgres_net
+    driver: bridge

@@ -1,0 +1,15 @@
+# =============================================================================
+# 主编排入口：通过 include 聚合子模块
+# 启动命令(加参数意味着强制覆盖)：docker compose up -d --force-recreate
+# 开发模式：docker compose watch（自动同步文件变更并重建）
+# 停止命令：docker compose down
+# 删除挂载卷：docker volume rm
+# 删除网络：docker network rm
+# 查看日志：docker compose logs -f container_name
+# 查看数据卷：docker volume inspect volume_name
+# =============================================================================
+include:
+  - path: postgres-compose.yaml
+  - path: gogs-compose.yaml
+  - path: redis-compose.yaml
+  - path: nginx-compose.yaml

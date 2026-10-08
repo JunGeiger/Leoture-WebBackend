@@ -1,0 +1,44 @@
+services:
+  redis:
+    image: redis:7.4.9
+    container_name: redis
+    restart: unless-stopped
+    command:
+      - redis-server
+      - /usr/local/etc/redis/redis.conf
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - redis-net
+    environment:
+      - TZ=Asia/Shanghai
+    # 以下字段 docker compose up 生效
+    cpus: "1"
+    mem_limit: 768m
+    memswap_limit: 768m
+    mem_reservation: 128m
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+volumes:
+  redis_data:
+    driver: local
+networks:
+  redis-net:
+    name: leoture_redis_net
+    driver: bridge
